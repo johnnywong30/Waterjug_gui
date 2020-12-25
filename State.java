@@ -34,6 +34,14 @@ public class State {
         return a == vals[0] && b == vals[1] && c == vals[2];
     }
 
+    State getParent() {
+        return this.parent;
+    }
+
+    String getDirections() {
+        return this.directions;
+    }
+
     String to_String() {
         StringBuilder state = new StringBuilder();
         state.append("(");
