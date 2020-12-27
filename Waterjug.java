@@ -8,6 +8,9 @@ import javafx.scene.paint.*;
 import javafx.stage.Stage;
 import javafx.scene.image.*;
 import javafx.scene.layout.*;
+import javafx.event.*;
+import javafx.util.*;
+import javafx.scene.control.Alert.AlertType; 
 import java.util.*;
 
 public class Waterjug extends Application {
@@ -18,13 +21,10 @@ public class Waterjug extends Application {
     private int rectY;  // top left of rectangle y coord
     private int rectMaxX;
     private int rectMaxY;
-    private int capA;
-    private int capB; 
-    private int capC;
-    private int goalA;
-    private int goalB;
-    private int goalC;
+    private int[] caps;
+    private int[] goals;
     private StackPane root;
+    private Puzzle solver;
 
     public void drawTitle(Canvas canvas) {
         GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -56,11 +56,17 @@ public class Waterjug extends Application {
         gc.fillRect(x, y - fill, rectMaxX, fill);        
     }
 
+    public void clearJugs(Canvas canvas) {
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.clearRect(0, 70, width, height - 70);
+    }
+
     public Canvas drawHome() {
         Canvas canvas = new Canvas(width, height);
         drawTitle(canvas);
         drawJugs(canvas);
         fillJug(canvas, 1, 4, 8);   // test
+        // clearJugs(canvas);
         return canvas;
     }
 
@@ -85,17 +91,74 @@ public class Waterjug extends Application {
 
     public TextField[] getFields() {
         TextField[] fields = new TextField[6];
+        int[] defaults = {3, 5, 8, 0, 4, 4};
         for (int i = 0; i < 3; ++i) {
             int x = i * (rectMaxX + 50);
             Label capacity = makeLabel(x, -50, i, "Capacity for Jug ");
-            fields[i] = makeField(x, -50);  // add default capacity
+            fields[i] = makeField(x, -50);  
+            fields[i].setText(String.valueOf(defaults[i]));
             Label goal = makeLabel(x, 250, i, "Goal for Jug ");
-            fields[i + 3] = makeField(x, 250);  // add default goal
+            fields[i + 3] = makeField(x, 250);  
+            fields[i + 3].setText(String.valueOf(defaults[i + 3]));
             // add event handlers for these
             root.getChildren().addAll(capacity, fields[i], goal, fields[i + 3]);
         }
+        // shouldn't have to do this if submit event handler works...
+        // caps[0] = defaults[0];
+        // caps[1] = defaults[1];
+        // caps[2] = defaults[2];
+        // goals[0] = defaults[3];
+        // goals[1] = defaults[4];
+        // goals[2] = defaults[5];
         return fields;
     } 
+
+    // submit caps and goals
+    // will send warnings if there are any errors in the fields...
+    public Button getSubmitButton(TextField[] fields) {
+        Button submit = new Button("Submit");
+        submit.setTranslateX(2 * (rectMaxX + 50));
+        submit.setTranslateY(-50);
+        Tooltip t = new Tooltip("Click to submit capacities and goals for the jugs!");
+        t.setShowDelay(Duration.seconds(0.25));
+        Tooltip.install(submit, t);
+        // event handler stuff
+        EventHandler<ActionEvent> event = new EventHandler<>() {
+            public void handle(ActionEvent e) {
+                int maxCap = Integer.MIN_VALUE;
+                for (int i = 0; i < 3; ++i) {
+                    try {
+                        caps[i] = Integer.parseInt(fields[i].getText());
+                        if (i < 2 && caps[i] > maxCap) {
+                            maxCap = caps[i];
+                        }
+                        else if (caps[i] < maxCap) {
+                            System.out.println("here");
+                            throw new Exception("Invalid capacity for jug C.");
+                        }
+                        goals[i] = Integer.parseInt(fields[i + 3].getText());
+                        if (goals[i] > caps[i]) {
+                            System.out.println("what");
+                            throw new Exception("Invalid goal.");
+                        }
+                    } catch (Exception ex) {
+                        Alert a = new Alert(AlertType.ERROR);
+                        String text = "Please insert correct capacities and goals.\nCapacities must be valid integers.\nJug C must have the largest capacity.\nGoals must be valid integers and cannot be greater than their respective jug capacity.";
+                        a.setContentText(text); 
+                        a.show();
+                        return;
+                    }
+                    
+                }
+                solver = new Puzzle(caps[0], caps[1], caps[2], goals[0], goals[1], goals[2]);
+                // work on getting an array of the states so we can convert draw them onto the canvas
+                solver.getSolution();
+                System.out.println("\n");
+            }
+        };
+        submit.setOnAction(event);
+        return submit;
+    }
 
     @Override
     public void start(Stage stage) {
@@ -107,15 +170,14 @@ public class Waterjug extends Application {
         rectY = height / 2;
         rectMaxX = 100;
         rectMaxY = 200;
+        caps = new int[3];
+        goals = new int[3];
         root = new StackPane();
         Canvas canvas = drawHome();
-        // TextField field = makeField(0, 0);
-        // field.setText("Icoboob got big brain");
         root.getChildren().add(canvas);
-        getFields();
-        // for (TextField field: getFields()) {
-        //     root.getChildren().add(field);
-        // }
+        TextField[] fields = getFields();
+        root.getChildren().add(getSubmitButton(fields));
+        
         Scene scene = new Scene(root, width, height);
         stage.setScene(scene);
         stage.setTitle("Waterjug Puzzle");
