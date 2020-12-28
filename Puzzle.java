@@ -6,6 +6,7 @@ public class Puzzle {
     private int goal_b;
     private int goal_c;
     private State[][] visited;
+    private Stack<State> solution;
     
     public Puzzle(int _cap_a, int _cap_b, int _cap_c, int _goal_a, int _goal_b, int _goal_c) {
         caps = new int[3];
@@ -16,6 +17,10 @@ public class Puzzle {
         goal_b = _goal_b;
         goal_c = _goal_c;
         visited = new State[_cap_a + 1][_cap_b + 1];  // all initialized to null
+    }
+
+    public Stack<State> getSolutionStack() {
+        return solution;
     }
 
     @Override
@@ -105,9 +110,11 @@ public class Puzzle {
 
     String getPath(State path) {
         String result = path.getDirections() + " " + path.to_String();
+        solution.push(path);
         path = path.getParent();
         while (path != null) {
             result = path.getDirections() + " " + path.to_String() + "\n" + result;
+            solution.push(path);
             path = path.getParent();
         }
         return result;
@@ -132,7 +139,9 @@ public class Puzzle {
         if (! found) {
             System.out.println("No solution.\n");
         } else {
+            solution = new Stack<>();
             System.out.println(getPath(path));
+            // System.out.println(solution.size());
         }
     }
 

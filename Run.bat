@@ -6,3 +6,5 @@ SET path="C:\Program Files\Java\javafx-sdk-15.0.1\lib"
 "%JAVA_HOME%\bin\javac" --module-path %path% --add-modules javafx.controls Waterjug.java
 
 "%JAVA_HOME%\bin\java" --module-path %path% --add-modules javafx.controls Waterjug.java
+
+del "*.class"

@@ -1,4 +1,5 @@
 import javafx.application.Application;
+import javafx.animation.*;
 import javafx.scene.Scene;
 import javafx.scene.text.*;
 import javafx.scene.canvas.*;
@@ -25,6 +26,7 @@ public class Waterjug extends Application {
     private int[] goals;
     private StackPane root;
     private Puzzle solver;
+    private AnimationTimer loop;
 
     public void drawTitle(Canvas canvas) {
         GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -89,6 +91,22 @@ public class Waterjug extends Application {
         return label;
     }
 
+    public Label makeAuthor() {
+        String tag = "By Johnny Wong";
+        Label label = new Label(tag);
+        label.setFont(new Font("Gill Sans", 16));
+        label.setTranslateY(-250);
+        return label;
+    }
+
+    public Label makeMoveLabel() {
+        String tag = "";
+        Label label = new Label(tag);
+        label.setFont(new Font("Gill Sans", 32));
+        label.setTranslateY(-150);
+        return label;
+    }
+
     public TextField[] getFields() {
         TextField[] fields = new TextField[6];
         int[] defaults = {3, 5, 8, 0, 4, 4};
@@ -112,10 +130,39 @@ public class Waterjug extends Application {
         // goals[2] = defaults[5];
         return fields;
     } 
+    
+
+    public void animate(Canvas canvas, Stack<State> stack, Label move) {
+        startAnimation(canvas, stack, move);
+    }
+
+    private void startAnimation(Canvas canvas, Stack<State> stack, Label move) {
+        loop = new AnimationTimer() {
+            private long lastUpdate = 0;
+            @Override
+            public void handle(long now) {
+                if (now - lastUpdate >= 1024_000_000) {
+                    State top = stack.pop();
+                    int[] jugs = top.getVals();
+                    clearJugs(canvas);
+                    drawJugs(canvas);
+                    for (int i = 0; i < 3; ++i) {
+                        fillJug(canvas, i, jugs[i], caps[i]);
+                        move.setText(top.getDirections() + "\n" + top.to_String());
+                    }
+                    lastUpdate = now;
+                }
+                if (stack.isEmpty()) {
+                    loop.stop();
+                }
+            }
+        };
+        loop.start();
+    }
 
     // submit caps and goals
     // will send warnings if there are any errors in the fields...
-    public Button getSubmitButton(TextField[] fields) {
+    public Button getSubmitButton(Canvas canvas, TextField[] fields, Label move) {
         Button submit = new Button("Submit");
         submit.setTranslateX(2 * (rectMaxX + 50));
         submit.setTranslateY(-50);
@@ -153,7 +200,8 @@ public class Waterjug extends Application {
                 solver = new Puzzle(caps[0], caps[1], caps[2], goals[0], goals[1], goals[2]);
                 // work on getting an array of the states so we can convert draw them onto the canvas
                 solver.getSolution();
-                System.out.println("\n");
+                animate(canvas, solver.getSolutionStack(), move);
+                // System.out.println("\n");
             }
         };
         submit.setOnAction(event);
@@ -176,7 +224,9 @@ public class Waterjug extends Application {
         Canvas canvas = drawHome();
         root.getChildren().add(canvas);
         TextField[] fields = getFields();
-        root.getChildren().add(getSubmitButton(fields));
+        Label move = makeMoveLabel();
+        root.getChildren().addAll(makeAuthor(), move);
+        root.getChildren().add(getSubmitButton(canvas, fields, move));
         
         Scene scene = new Scene(root, width, height);
         stage.setScene(scene);
